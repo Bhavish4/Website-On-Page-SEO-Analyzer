@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website On-Page SEO Analyzer</title>
+    <meta name="description" content="Analyze on-page SEO signals and get practical recommendations for your website.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!-- ==================== HEADER ==================== -->
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('index') }}">
+            <span class="logo">↗</span>
+            SEO Analyzer
+        </a>
+        <nav aria-label="Main Navigation">
+            <a href="{{ url_for('index') }}" class="active-nav" aria-current="page">Analyze</a>
+            <a href="{{ url_for('history') }}">History</a>
+        </nav>
+        <span class="tag">Python Project</span>
+    </header>
+
+    <main class="container">
+        <!-- ==================== HERO SECTION ==================== -->
+        <section class="hero">
+            <p class="eyebrow">ON-PAGE WEBSITE AUDIT</p>
+            <h1>
+                Website On-Page
+                <span>SEO Analyzer</span>
+            </h1>
+            <p class="subtitle">
+                Analyze on-page SEO signals and get practical recommendations for a website.
+            </p>
+
+            <!-- Unified Website Audit Form -->
+            <form method="POST" action="{{ url_for('index') }}" class="search-form">
+                <div class="search-inputs">
+                    <div class="input-field url-field">
+                        <span class="field-icon" aria-hidden="true">↗</span>
+                        <input
+                            type="url"
+                            id="url-input"
+                            name="url"
+                            value="{{ submitted_url }}"
+                            placeholder="https://example.com"
+                            aria-label="Website URL"
+                            required
+                        >
+                    </div>
+                    <div class="input-divider" aria-hidden="true"></div>
+                    <div class="input-field keyword-field">
+                        <span class="field-icon" aria-hidden="true">🏷</span>
+                        <input
+                            type="text"
+                            id="keyword-input"
+                            name="keyword"
+                            value="{{ keyword }}"
+                            placeholder="Optional keyword (e.g. cyber security)"
+                            aria-label="Target Keyword"
+                        >
+                    </div>
+                </div>
+                <button type="submit" class="submit-button">Analyze Website →</button>
+            </form>
+
+            <p class="hint">
+                Public websites only. Evaluates on-page content, metadata, links, headings, and technical SEO factors.
+            </p>
+        </section>
+
+        <!-- ==================== ERROR MESSAGE ==================== -->
+        {% if error %}
+        <div class="alert" role="alert">
+            ⚠ {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- ==================== ANALYSIS REPORT ==================== -->
+        {% if result %}
+        <section class="report-top">
+            <div>
+                <p class="eyebrow">ANALYSIS REPORT</p>
+                <h2>{{ result.url }}</h2>
+                <p class="muted">
+                    HTTP {{ result.status_code }} · Scan #{{ result.scan_id }}
+                </p>
+            </div>
+            <a class="button secondary" href="{{ url_for('pdf_report', scan_id=result.scan_id) }}">
+                ↓ Download PDF
+            </a>
+        </section>
+
+        <!-- ==================== SUMMARY CARDS ==================== -->
+        <section class="summary">
+            <!-- Overall SEO Score -->
+            <article class="score-card">
+                <p class="muted">OVERALL SEO SCORE</p>
+                <div class="score">
+                    {{ result.score }}
+                    <small>/100</small>
+                </div>
+                <div
+                    class="meter"
+                    role="progressbar"
+                    aria-label="Overall SEO score"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="{{ result.score }}"
+                >
+                    <span></span>
+                </div>
+                <p class="score-caption {% if result.score >= 80 %}score-high-text{% elif result.score >= 60 %}score-mid-text{% else %}score-low-text{% endif %}">
+                    {% if result.score >= 80 %}
+                        Strong foundation
+                    {% elif result.score >= 60 %}
+                        Room to improve
+                    {% else %}
+                        Needs attention
+                    {% endif %}
+                </p>
+            </article>
+
+            <!-- Title Tag -->
+            <article class="stat">
+                <span class="stat-icon blue">T</span>
+                <p>Title Tag</p>
+                <strong>
+                    {% if result.title and result.title != 'Missing' %}
+                        {{ result.title|length }} chars
+                    {% else %}
+                        0 chars
+                    {% endif %}
+                </strong>
+                <small>{{ "Found" if result.title and result.title != "Missing" else "Missing" }}</small>
+            </article>
+
+            <!-- Meta Description -->
+            <article class="stat">
+                <span class="stat-icon purple">M</span>
+                <p>Meta Description</p>
+                <strong>
+                    {% if result.description and result.description != 'Missing' %}
+                        {{ result.description|length }} chars
+                    {% else %}
+                        0 chars
+                    {% endif %}
+                </strong>
+                <small>{{ "Found" if result.description and result.description != "Missing" else "Missing" }}</small>
+            </article>
+
+            <!-- H1 Headings -->
+            <article class="stat">
+                <span class="stat-icon orange">H</span>
+                <p>H1 Headings</p>
+                <strong>{{ result.headings["H1"]|length }}</strong>
+                <small>On this page</small>
+            </article>
+
+            <!-- Images -->
+            <article class="stat">
+                <span class="stat-icon green">▧</span>
+                <p>Images</p>
+                <strong>{{ result.images_count }}</strong>
+                <small>{{ result.missing_alt|length }} missing alt text</small>
+            </article>
+        </section>
+
+        <!-- ==================== DETAILS GRID ==================== -->
+        <section class="details-grid">
+            <!-- ==================== SEO CHECKS ==================== -->
+            <article class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">REPORT</p>
+                        <h2>Detailed SEO Checks</h2>
+                    </div>
+                    <span class="count">
+                        {{ result.checks|selectattr("passed")|list|length }} / {{ result.checks|length }} passed
+                    </span>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in result.checks %}
+                            <tr>
+                                <td>{{ c.name }}</td>
+                                <td>
+                                    <span class="status {{ 'pass' if c.passed else 'fail' }}">
+                                        {{ "PASS" if c.passed else "REVIEW" }}
+                                    </span>
+                                </td>
+                                <td>{{ c.detail }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3">No SEO checks are available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <!-- ==================== SIDE COLUMN ==================== -->
+            <aside class="side-column">
+                <!-- ==================== PAGE OVERVIEW ==================== -->
+                <article class="panel">
+                    <p class="eyebrow">PAGE OVERVIEW</p>
+                    <h2>Page Details</h2>
+                    <dl>
+                        <dt>Word Count</dt>
+                        <dd>{{ result.word_count }}</dd>
+
+                        <dt>Internal Links</dt>
+                        <dd>{{ result.internal_count }}</dd>
+
+                        <dt>External Links</dt>
+                        <dd>{{ result.external_count }}</dd>
+
+                        <dt>Canonical</dt>
+                        <dd class="url">{{ result.canonical }}</dd>
+
+                        <dt>Robots</dt>
+                        <dd>{{ result.robots }}</dd>
+                    </dl>
+                </article>
+
+                <!-- ==================== KEYWORD ANALYSIS ==================== -->
+                {% if result.keyword %}
+                <article class="panel">
+                    <p class="eyebrow">KEYWORD ANALYSIS</p>
+                    <h2>{{ result.keyword }}</h2>
+                    <dl>
+                        <dt>Occurrences</dt>
+                        <dd>{{ result.keyword_count }}</dd>
+
+                        <dt>Text Density</dt>
+                        <dd>{{ result.keyword_density }}%</dd>
+
+                        <dt>In Title</dt>
+                        <dd>{{ "Yes" if result.title_has_keyword else "No" }}</dd>
+
+                        <dt>In Description</dt>
+                        <dd>{{ "Yes" if result.desc_has_keyword else "No" }}</dd>
+
+                        <dt>In H1</dt>
+                        <dd>{{ "Yes" if result.h1_has_keyword else "No" }}</dd>
+                    </dl>
+                    <p class="hint">
+                        Keyword density is an estimate, not a ranking target.
+                    </p>
+                </article>
+                {% endif %}
+
+                <!-- ==================== ROBOTS AND SITEMAP ==================== -->
+                <article class="panel">
+                    <p class="eyebrow">DISCOVERY RESOURCES</p>
+                    <h2>Robots & Sitemap</h2>
+                    {% for name, r in result.resources.items() %}
+                        {% if r.available %}
+                        <a href="{{ r.url }}" target="_blank" rel="noopener noreferrer" class="resource-link">
+                            <span>{{ name }} ↗</span>
+                            <span class="status pass">Available ({{ r.status }})</span>
+                        </a>
+                        {% else %}
+                        <div class="resource">
+                            <span>{{ name }}</span>
+                            <span class="status fail">{{ r.status }}</span>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <p class="hint">No discovery resources were checked.</p>
+                    {% endfor %}
+                </article>
+
+                <!-- ==================== RECOMMENDATIONS ==================== -->
+                <article class="panel recommendations">
+                    <p class="eyebrow">NEXT STEPS</p>
+                    <h2>Recommendations</h2>
+
+                    {% if result.recommendations %}
+                    <ul>
+                        {% for rec in result.recommendations %}
+                        <li>
+                            <span>!</span>
+                            <div>{{ rec }}</div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="success-message">All implemented checks passed.</p>
+                    {% endif %}
+
+                    <!-- Images Missing Alt Text -->
+                    {% if result.missing_alt %}
+                    <h3>Images Missing Alt Text</h3>
+                    <ul class="image-list">
+                        {% for img in result.missing_alt[:8] %}
+                        <li>{{ img }}</li>
+                        {% endfor %}
+                        {% if result.missing_alt|length > 8 %}
+                        <li class="more-items">+ {{ result.missing_alt|length - 8 }} more image(s)</li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
+                    <!-- Links to Review -->
+                    {% if result.broken_links %}
+                    <h3>Sampled Links to Review</h3>
+                    <ul class="image-list">
+                        {% for b in result.broken_links %}
+                        <li>{{ b.status }} — {{ b.url }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="hint">No failed links in the sample, or no links were checked.</p>
+                    {% endif %}
+                </article>
+            </aside>
+        </section>
+
+        <!-- ==================== FEATURES (SHOWN WHEN NO REPORT) ==================== -->
+        {% else %}
+        <section class="features">
+            <div class="feature">
+                <span>01</span>
+                <h3>Content Signals</h3>
+                <p>Titles, descriptions, headings, word count and keywords.</p>
+            </div>
+
+            <div class="feature">
+                <span>02</span>
+                <h3>Technical Basics</h3>
+                <p>HTTPS, canonical URLs, robots directives and sitemap availability.</p>
+            </div>
+
+            <div class="feature">
+                <span>03</span>
+                <h3>Links & Images</h3>
+                <p>Alt text checks, link counts and limited link status sampling.</p>
+            </div>
+
+            <div class="feature">
+                <span>04</span>
+                <h3>PDF Reports</h3>
+                <p>Downloadable reports with checks and recommendations.</p>
+            </div>
+
+            <div class="feature">
+                <span>05</span>
+                <h3>Scan History</h3>
+                <p>Previous scans saved in SQLite database.</p>
+            </div>
+
+            <div class="feature">
+                <span>06</span>
+                <h3>Improvement Tips</h3>
+                <p>Practical recommendations based on failed checks.</p>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- ==================== RECENT SCANS ==================== -->
+        {% if recent %}
+        <section class="panel recent">
+            <div class="panel-heading">
+                <h2>Recent Scans</h2>
+                <a href="{{ url_for('history') }}">View All →</a>
+            </div>
+
+            {% for s in recent %}
+            <a class="recent-row" href="{{ url_for('history_detail', scan_id=s.id) }}">
+                <span>{{ s.url }}</span>
+                <span class="score-pill {% if s.score >= 80 %}score-pill-high{% elif s.score >= 60 %}score-pill-mid{% else %}score-pill-low{% endif %}">
+                    {{ s.score }}/100
+                </span>
+                <small>{{ s.created_at }}</small>
+            </a>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- ==================== FOOTER ==================== -->
+        <footer>
+            <p>Python · Flask · SQLite · Beautiful Soup · ReportLab</p>
+            <span>Educational heuristic, not an official Google score</span>
+        </footer>
+    </main>
+
+    <script>
+        (function() {
+            var meter = document.querySelector('.meter');
+            if (meter) {
+                var fill = meter.querySelector('span');
+                var score = meter.getAttribute('aria-valuenow');
+                if (fill && score !== null) {
+                    fill.style.width = score + '%';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

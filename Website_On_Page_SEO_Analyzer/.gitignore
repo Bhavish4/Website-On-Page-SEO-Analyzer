@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+seo_history.db
+generated_reports/
+.env

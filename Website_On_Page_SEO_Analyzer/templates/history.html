@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History - Website On-Page SEO Analyzer</title>
+    <meta name="description" content="View previous website on-page SEO scans, audit scores, and full reports.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- ==================== HEADER ==================== -->
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('index') }}">
+            <span class="logo">↗</span>
+            SEO Analyzer
+        </a>
+        <nav aria-label="Main Navigation">
+            <a href="{{ url_for('index') }}">Analyze</a>
+            <a href="{{ url_for('history') }}" class="active-nav">History</a>
+        </nav>
+        <span class="tag">Python Project</span>
+    </header>
+
+    <main class="container">
+        <!-- ==================== HERO SECTION ==================== -->
+        <section class="hero">
+            <p class="eyebrow">SAVED AUDITS</p>
+            <h1>Scan <span>History</span></h1>
+            <p class="subtitle">Previous website analyses saved locally in SQLite database.</p>
+        </section>
+
+        <!-- ==================== HISTORY PANEL ==================== -->
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">DATABASE</p>
+                    <h2>Previous Scans</h2>
+                </div>
+                <div class="panel-actions">
+                    {% if scans %}
+                    <form method="POST" action="{{ url_for('clear_history') }}" onsubmit="return confirm('Are you sure you want to delete ALL scans from history? This cannot be undone.');" style="display:inline;">
+                        <button type="submit" class="button button-danger">Clear History</button>
+                    </form>
+                    {% endif %}
+                    <a class="button" href="{{ url_for('index') }}">+ New Analysis</a>
+                </div>
+            </div>
+
+            {% if scans %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Website</th>
+                            <th>SEO Score</th>
+                            <th>Scan Timestamp</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in scans %}
+                        <tr>
+                            <td class="url">
+                                <a href="{{ url_for('history_detail', scan_id=s.id) }}" class="history-url">
+                                    {{ s.url }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="score-pill {% if s.score >= 80 %}score-pill-high{% elif s.score >= 60 %}score-pill-mid{% else %}score-pill-low{% endif %}">
+                                    {{ s.score }}/100
+                                </span>
+                            </td>
+                            <td class="muted">{{ s.created_at }}</td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="action-btn" href="{{ url_for('history_detail', scan_id=s.id) }}">
+                                        View Report →
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_scan', scan_id=s.id) }}" onsubmit="return confirm('Delete this scan?');" style="display:inline;">
+                                        <button type="submit" class="delete-btn" title="Delete scan">✕ Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No scans recorded yet. <a href="{{ url_for('index') }}">Analyze your first website</a> to build history.</p>
+            </div>
+            {% endif %}
+        </article>
+
+        <!-- ==================== FOOTER ==================== -->
+        <footer>
+            <p>Python · Flask · SQLite · Beautiful Soup · ReportLab</p>
+            <span>Educational heuristic, not an official Google score</span>
+        </footer>
+    </main>
+</body>
+</html>
